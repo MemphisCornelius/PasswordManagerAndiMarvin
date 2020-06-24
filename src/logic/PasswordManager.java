@@ -13,8 +13,7 @@ public class PasswordManager {
     private final Connection conn;
     private final String databaseName;
 
-
-    public PasswordManager(File file, String username, String password) throws IOException {
+    public PasswordManager(File file, String password) throws IOException {
         Connection connTmp = null;
         String databaseNameTmp = null;
 
@@ -25,7 +24,7 @@ public class PasswordManager {
 
             try {
                 Class.forName(JDBC_DRIVER);
-                connTmp = DriverManager.getConnection(dbUrl, username, password);
+                connTmp = DriverManager.getConnection(dbUrl, "user", password);
                 databaseNameTmp = file.getName().substring(0, file.getName().length() - 6);
             } catch (SQLException | ClassNotFoundException throwables) {
                 throwables.printStackTrace();
@@ -38,7 +37,7 @@ public class PasswordManager {
         databaseName = databaseNameTmp;
     }
 
-    public PasswordManager(File file, String databaseName, String username, String password) throws IOException {
+    public PasswordManager(File file, String databaseName, String password) throws IOException {
         Connection connTmp = null;
         String databaseNameTmp = null;
 
@@ -51,7 +50,7 @@ public class PasswordManager {
 
             try {
                 Class.forName(JDBC_DRIVER);
-                connTmp = DriverManager.getConnection(dbUrl, username, password);
+                connTmp = DriverManager.getConnection(dbUrl, "user", password);
                 PreparedStatement pst = connTmp.prepareStatement(sql);
                 pst.setString(1, file.getName());
                 pst.executeUpdate();
@@ -75,7 +74,7 @@ public class PasswordManager {
         }
     }
 
-    void newEntry(String account, String username, String password) {
+    void newEntry(String account, String username, String password) throws IOException {
         String sql = "INSERT INTO ?(account, username, password) VALUES(?, ?, ?)";
 
         if(getEntrysByAccount(account) != null) {
@@ -89,6 +88,8 @@ public class PasswordManager {
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
+        }else {
+            throw new IOException("Accountname already in use");
         }
 
     }
@@ -106,7 +107,7 @@ public class PasswordManager {
         }
     }
 
-    void editEntry(String account, String username, String password) {
+    void editEntryContent(String account, String username, String password) {
         String sql = "UPDATE ? SET username = ?, password = ? WHERE account = ?";
 
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
@@ -118,6 +119,24 @@ public class PasswordManager {
             pst.executeUpdate();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+        }
+    }
+
+    void editEntryName(String oldName, String newName) throws IOException {
+        String sql = "UPDATE ? SET account = ? WHERE account = ?";
+
+        if (getEntrysByAccount(newName) != null) {
+            try (PreparedStatement pst = conn.prepareStatement(sql)) {
+                pst.setString(1, databaseName);
+                pst.setString(2, newName);
+                pst.setString(3, oldName);
+
+                pst.executeUpdate();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }else {
+            throw new IOException("Accountname already in use");
         }
     }
 
