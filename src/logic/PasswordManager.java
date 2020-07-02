@@ -1,37 +1,43 @@
 package logic;
 
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class PasswordManager {
 
     private static final String JDBC_DRIVER = "org.h2.Driver";
 
-    private final Connection conn; //Connection object to the database
-    private final String databaseName; //name of the database table
+    private final Connection conn; //Connection Object zur Datenbank
+    private final String databaseName; //Name der Datenbank
 
     /**
-     * Creates PasswordManager object and connects to the database.
-     * @param file the file of the database where the accountnames, usernames and passwords are stored
-     * @param password the password for the database
-     * @throws IOException if something is wrong with the file
+     * Erstellt ein PasswordManager Object und verbindet sich zur Datenbank
+     * @param file absoluter Pfad zur Datei der Datenbank in der alle Informationen gespeichert werden
+     * @param password Password der Datenbank
+     * @throws IOException wenn etwas mit der Datenbank-Datei nicht stimmt
      */
     public PasswordManager(File file, String password) throws IOException {
         Connection connTmp = null;
         String databaseNameTmp = null;
 
-        //checks if the "selected" file is of the correct type
+        //prüft, ob die Datenbank-Daeti existiert, eine Datei ist, der Pfad zur Datei absolut ist,
+        //ob die Datei les- und schreibbar ist und auf ".mv.db" endet,
+        //um potenzielle Fehler auszuschließen
         if (file.exists() && file.isFile() && file.isAbsolute() && file.canRead() && file.canWrite() && file.getName().endsWith(".mv.db")) {
 
-            //database URL
+            //Datenbak-URL
             String dbUrl = "jdbc:h2:file:" + file.getPath().substring(0, file.getPath().length() - 6) +
                     ";CIPHER=AES;TRACE_LEVEL_FILE=0;AUTO_RECONNECT=TRUE";
 
             try {
-                //Connects to database
+                //Verbindet sich zur Datenbank
                 Class.forName(JDBC_DRIVER);
                 connTmp = DriverManager.getConnection(dbUrl, "user", password + " " + password);
                 databaseNameTmp = file.getName().substring(0, file.getName().length() - 6);
@@ -40,34 +46,36 @@ public class PasswordManager {
             }
 
         } else {
-            throw new IOException("THE FILE DOES NOT EXIST OR IS NOT READABLE/WRITABLE");
+            throw new IOException("Something is wrong with the database-file.");
         }
         conn = connTmp;
         databaseName = databaseNameTmp;
     }
 
     /**
-     * Creates PasswordManager object and crates and connects to the database.
-     * @param file the path of the database where the accountnames, usernames and passwords are stored
-     * @param databaseName nme of the database and the database file
-     * @param password the password for the database
-     * @throws IOException if something is wrong with the file
+     * Erstellt ein Paswordmanager Objekt, erstellt eine neue Datenbank und verbindet sich zu dieser
+     * @param path absoluter Pfad zu dem Ordner in dem die Datenbank-Datei erstellt wird
+     * @param databaseName Name der Datenbank-Datei
+     * @param password Passwort für die Datenbank
+     * @throws IOException wenn etwas mit dem Datenbank-Pfad nicht stimmt
      */
-    public PasswordManager(File file, String databaseName, String password) throws IOException {
+    public PasswordManager(File path, String databaseName, String password) throws IOException {
         Connection connTmp = null;
         String databaseNameTmp = null;
 
-        if (file.exists() && file.isDirectory() && file.isAbsolute() && file.canRead() && file.canWrite()) {
+        //prüft, ob der Pfad für die Datenbank existiert, ein Ordner ist und les- und schreibbar ist,
+        //um potenzielle Fehler auszuschließen
+        if (path.exists() && path.isDirectory() && path.isAbsolute() && path.canRead() && path.canWrite()) {
 
-            //database URL
-            String dbUrl = "jdbc:h2:file:" + file.getPath() + "/" + databaseName +
+            //Datenbank URL
+            String dbUrl = "jdbc:h2:file:" + path.getPath() + "/" + databaseName +
                     ";CIPHER=AES;TRACE_LEVEL_FILE=0;AUTO_RECONNECT=TRUE";
 
-            //SQL statement to create the table to store all information
+            //SQL statement, um Tabelle zu erstellen, in der alle Informationen gespeichert werden
             String sql = "CREATE TABLE IF NOT EXISTS " + databaseName+ " (account VARCHAR, username VARCHAR, password VARCHAR, PRIMARY KEY (account))";
 
             try {
-                //Connects to database and creates the table
+                //Verbindet sich zur Datenbank und führt das SQL statement aus
                 Class.forName(JDBC_DRIVER);
                 connTmp = DriverManager.getConnection(dbUrl,"user", password + " " + password);
                 PreparedStatement pst = connTmp.prepareStatement(sql);
@@ -77,14 +85,14 @@ public class PasswordManager {
                 throwables.printStackTrace();
             }
         } else {
-            throw new IOException("THE PATH DOES NOT EXIST OR IS NOT READABLE/WRITABLE");
+            throw new IOException("Something is wrong with the database directory");
         }
         conn = connTmp;
         this.databaseName = databaseNameTmp;
     }
 
     /**
-     * Closes the connection to the database.
+     * Schließt die Verbindung zur Datenbank
      */
     public void logout() {
         try {
@@ -95,19 +103,19 @@ public class PasswordManager {
     }
 
     /**
-     * Adds an entry to the database.
-     * @param account name of the entry; primary key in database
-     * @param username field of the entry for the username
-     * @param password field of the entry fot the password
-     * @throws IOException if accountname is already used by another entry
+     * Fügt einen neuen Eintrag zur Datenbank hinzu
+     * @param account Name des Eintrags; Primärschlüssel
+     * @param username Feld für den Usernamen des Eintrags
+     * @param password Feld für das Passwort des Eintrags
+     * @throws IllegalArgumentException wenn der Accountname schon von einem anderen Eintrag verwendet wird
      */
-    public void newEntry(String account, String username, String password) throws IOException {
-        //SQL statement to insert the information to the database
+    public void newEntry(String account, String username, String password) throws IllegalArgumentException {
+        //SQL statement um die Informationen in die Datenbank einzutragen
         String sql = "INSERT INTO " + databaseName + "(account, username, password) VALUES(?, ?, ?)";
 
-        //checks if accountname is already used by another account
+        //prüft, ob der Accountname von einem anderen Eintrag schon verwendet wird
         if(getEntrysByAccount(account) != null) {
-            //execute the SQL statement
+            //führt das SQL statement aus
             try (PreparedStatement pst = conn.prepareStatement(sql)) {
                 pst.setString(1, account);
                 pst.setString(2, username);
@@ -118,20 +126,19 @@ public class PasswordManager {
                 throwables.printStackTrace();
             }
         }else {
-            throw new IOException("Accountname already in use");
+            throw new IllegalArgumentException("Accountname already in use");
         }
-
     }
 
     /**
-     * deletes entry from database
-     * @param account name of which account should be removed
+     * Löscht den Eintag aus der Datenbank
+     * @param account Name des Eintrags, der gelöscht werden soll
      */
     public void deleteEntry(String account) {
-        //SQL statement to delete the account by name
+        //SQL statement um den Eintrag aus der Datenbank zu löschen
         String sql = "DELETE FROM " + databaseName + " WHERE account = ?";
 
-        //execute the SQL statement
+        //führt das SQL statement aus
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
             pst.setString(1, account);
 
@@ -167,9 +174,9 @@ public class PasswordManager {
      * Edits the account name of an entry
      * @param oldName current name of the entry which should be changed
      * @param newName new name of the entry
-     * @throws IOException if newName is already the name of another entry
+     * @throws IllegalArgumentException if newName is already the name of another entry
      */
-    public void editEntryName(String oldName, String newName) throws IOException {
+    public void editEntryName(String oldName, String newName) throws IllegalArgumentException {
         //SQL statement to update account (primary key) for an entry
         String sql = "UPDATE " + databaseName + " SET account = ? WHERE account = ?";
 
@@ -185,7 +192,7 @@ public class PasswordManager {
                 throwables.printStackTrace();
             }
         }else {
-            throw new IOException("Accountname already in use");
+            throw new IllegalArgumentException("Accountname already in use");
         }
     }
 
@@ -240,5 +247,58 @@ public class PasswordManager {
             throwables.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Kopiert den Usernamen oder das Passwort eines Accounts in die Zwischenablage
+     * und löscht nach einer Minute die Zwischenablage
+     * @param type "username" oder "password"; Feld, welches kopiert werden soll
+     * @param account name des Accounts, von dem kopiert werden soll
+     * @return ob das SQl statements erfolgreich war
+     * @throws IllegalArgumentException wenn type nicht "username" oder "password" ist oder wenn account nicht existiert
+     */
+    public boolean copyToClipboard(String type, String account) throws IllegalArgumentException {
+        //Variabel um den Erfolg des SQL statement zu verfolgen
+        boolean success = false;
+
+        //SQL statement um den Usernamen oder das Passwort eines Accounts
+        String sql = "SELECT ? FROM " + databaseName + "WHERE account = ?";
+
+        //prüft, ob type username oder password ist
+        if (type.equals("username") || type.equals("password")) {
+            //prüft, ob der acccount existiert
+            if (getEntrysByAccount(account) != null) {
+                //setzt das SQL statement
+                try (PreparedStatement pst = conn.prepareStatement(sql)) {
+                    pst.setString(1, type);
+                    pst.setString(2, account);
+
+                    //führt das SQL statement aus
+                    ResultSet rs = pst.executeQuery();
+                    while (rs.next()) {
+                        //kopiert das Ergebnis der SQL Querry in die Zwischenablage
+                        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                                new StringSelection(rs.getString(1)), null);
+                        success = true;
+
+                        //überschreibt die Zwischenablage nach einer Miute mit ""
+                        new Timer().schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                                        new StringSelection(""), null);
+                            }
+                        }, 60 * 1000);
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+            } else {
+              throw new IllegalArgumentException("Accountname doe not exist.");
+            }
+        } else {
+            throw new IllegalArgumentException("Illegal type. Must be \"username\" or \"password\".");
+        }
+    return success;
     }
 }
