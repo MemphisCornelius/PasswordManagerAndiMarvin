@@ -114,7 +114,7 @@ public class PasswordManager {
         String sql = "INSERT INTO " + databaseName + "(account, username, password) VALUES(?, ?, ?)";
 
         //prüft, ob der Accountname von einem anderen Eintrag schon verwendet wird
-        if(getEntrysByAccount(account) != null) {
+        if(getEntrysByAccount(account) == null) {
             //führt das SQL statement aus
             try (PreparedStatement pst = conn.prepareStatement(sql)) {
                 pst.setString(1, account);
@@ -149,16 +149,16 @@ public class PasswordManager {
     }
 
     /**
-     * Edits username and password of an existing entry
-     * @param account name of the entry which wiil be edited
-     * @param username new username
-     * @param password new password
+     * Ändert den Usernamen oder das Passwort eines Eintrags
+     * @param account Name des Eintrags, welcher geändert werden soll
+     * @param username neuer Username
+     * @param password neues Passwort
      */
     public void editEntryContent(String account, String username, String password) {
-        //SQL statement to update username and password for an entry
+        //SQL statement, um den Nutzernamen und das Passwort eines Eintrags zu überschreiben
         String sql = "UPDATE " + databaseName + " SET username = ?, password = ? WHERE account = ?";
 
-        //execute SQL statement
+        //führt das SQL statement aus
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
             pst.setString(1, username);
             pst.setString(2, password);
@@ -171,18 +171,18 @@ public class PasswordManager {
     }
 
     /**
-     * Edits the account name of an entry
-     * @param oldName current name of the entry which should be changed
-     * @param newName new name of the entry
-     * @throws IllegalArgumentException if newName is already the name of another entry
+     * Editiert den Namen eines Eintrags
+     * @param oldName momentaner Namen des Eintrags, der geändert werden soll
+     * @param newName neuer Name
+     * @throws IllegalArgumentException wenn newName schon Name eines Eintrags ist
      */
     public void editEntryName(String oldName, String newName) throws IllegalArgumentException {
-        //SQL statement to update account (primary key) for an entry
+        //SQL statement, um den Primärschlüssel (account) zu ändern
         String sql = "UPDATE " + databaseName + " SET account = ? WHERE account = ?";
 
-        //checks if name already exists
-        if (getEntrysByAccount(newName) != null) {
-            //execute SQL statement
+        //prüft, ob der Name schon von einem anderen Eintrag genutzt wird
+        if (getEntrysByAccount(newName) == null) {
+            //führt das SQL statement aus
             try (PreparedStatement pst = conn.prepareStatement(sql)) {
                 pst.setString(1, newName);
                 pst.setString(2, oldName);
@@ -197,25 +197,25 @@ public class PasswordManager {
     }
 
     /**
-     * Get all account names of a database
-     * Can be empty if no accounts exists and null if something weird happens
-     * @return String array of all account names
+     * Liefert alle Eintragsnamen der Datenbank
+     * Kann leer sein, wenn keine Einträge in der Datenbank sind oder null wenn ein fehler mit der Datenbak auftritt
+     * @return String array von allen Eintragsnamen
      */
-    public String[] getEntryAccounts() {
-        //temporary list to collect all names
+    public String[] getEntryNames() {
+        //temporäre Liste um alle Namen zu sammeln
         List<String> accounts = new ArrayList<String>();
-        //SQL statement to get all account names
+        //SQL statement um alle Namen der Einträge zu bekommen
         String sql = "SELECT account FROM " + databaseName;
 
-        //execte SQL statement
+        //führt das SQL statement aus
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
             ResultSet rs = pst.executeQuery();
 
-            //adds all account names to temporary list
+            //fügt jedes Ergebnis des SQL statements in die temporäre Liste
             while (rs.next()) {
                 accounts.add(rs.getString(1));
             }
-            //converts temporary list to array and returns it
+            //wandelt die Liste in ein Array um und gibt dieses zurück
             return (String[]) accounts.toArray();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
