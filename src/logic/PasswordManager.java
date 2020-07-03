@@ -15,7 +15,6 @@ public class PasswordManager {
     private static final String JDBC_DRIVER = "org.h2.Driver";
 
     private final Connection conn; //Connection Object zur Datenbank
-    private final String databaseName; //Name der Datenbank
 
     /**
      * Erstellt ein PasswordManager Object und verbindet sich zur Datenbank
@@ -49,7 +48,6 @@ public class PasswordManager {
             throw new IOException("Something is wrong with the database-file.");
         }
         conn = connTmp;
-        databaseName = databaseNameTmp;
     }
 
     /**
@@ -72,7 +70,7 @@ public class PasswordManager {
                     ";CIPHER=AES;TRACE_LEVEL_FILE=0;AUTO_RECONNECT=TRUE";
 
             //SQL statement, um Tabelle zu erstellen, in der alle Informationen gespeichert werden
-            String sql = "CREATE TABLE IF NOT EXISTS " + databaseName+ " (account VARCHAR, username VARCHAR, password VARCHAR, PRIMARY KEY (account))";
+            String sql = "CREATE TABLE IF NOT EXISTS db(account VARCHAR, username VARCHAR, password VARCHAR, PRIMARY KEY (account))";
 
             try {
                 //Verbindet sich zur Datenbank und führt das SQL statement aus
@@ -88,18 +86,20 @@ public class PasswordManager {
             throw new IOException("Something is wrong with the database directory");
         }
         conn = connTmp;
-        this.databaseName = databaseNameTmp;
     }
 
     /**
      * Schließt die Verbindung zur Datenbank
+     * @return den Erfolg der
      */
-    public void logout() {
+    public boolean logout() {
         try {
             conn.close();
+            return true;
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
+        return false;
     }
 
     /**
@@ -107,14 +107,15 @@ public class PasswordManager {
      * @param account Name des Eintrags; Primärschlüssel
      * @param username Feld für den Usernamen des Eintrags
      * @param password Feld für das Passwort des Eintrags
+     * @retrun Erfolg des SQL statements
      * @throws IllegalArgumentException wenn der Accountname schon von einem anderen Eintrag verwendet wird
      */
-    public void newEntry(String account, String username, String password) throws IllegalArgumentException {
+    public boolean newEntry(String account, String username, String password) throws IllegalArgumentException {
         //SQL statement um die Informationen in die Datenbank einzutragen
-        String sql = "INSERT INTO " + databaseName + "(account, username, password) VALUES(?, ?, ?)";
+        String sql = "INSERT INTO db(account, username, password) VALUES(?, ?, ?)";
 
         //prüft, ob der Accountname von einem anderen Eintrag schon verwendet wird
-        if(getEntrysByAccount(account) == null) {
+        if(getEntryByName(account) == null) {
             //führt das SQL statement aus
             try (PreparedStatement pst = conn.prepareStatement(sql)) {
                 pst.setString(1, account);
@@ -122,30 +123,35 @@ public class PasswordManager {
                 pst.setString(3, password);
 
                 pst.executeUpdate();
+                return true;
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
         }else {
             throw new IllegalArgumentException("Accountname already in use");
         }
+        return false;
     }
 
     /**
      * Löscht den Eintag aus der Datenbank
      * @param account Name des Eintrags, der gelöscht werden soll
+     * @return Erfolg der SQL statements
      */
-    public void deleteEntry(String account) {
+    public boolean deleteEntry(String account) {
         //SQL statement um den Eintrag aus der Datenbank zu löschen
-        String sql = "DELETE FROM " + databaseName + " WHERE account = ?";
+        String sql = "DELETE FROM db WHERE account = ?";
 
         //führt das SQL statement aus
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
             pst.setString(1, account);
 
             pst.executeUpdate();
+            return true;
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
+        return false;
     }
 
     /**
@@ -153,10 +159,11 @@ public class PasswordManager {
      * @param account Name des Eintrags, welcher geändert werden soll
      * @param username neuer Username
      * @param password neues Passwort
+     * @retrun Erfolg des SQL statements
      */
-    public void editEntryContent(String account, String username, String password) {
+    public boolean editEntryContent(String account, String username, String password) {
         //SQL statement, um den Nutzernamen und das Passwort eines Eintrags zu überschreiben
-        String sql = "UPDATE " + databaseName + " SET username = ?, password = ? WHERE account = ?";
+        String sql = "UPDATE db SET username = ?, password = ? WHERE account = ?";
 
         //führt das SQL statement aus
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
@@ -165,35 +172,40 @@ public class PasswordManager {
             pst.setString(3, account);
 
             pst.executeUpdate();
+            return true;
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
+        return false;
     }
 
     /**
      * Editiert den Namen eines Eintrags
      * @param oldName momentaner Namen des Eintrags, der geändert werden soll
      * @param newName neuer Name
+     * @return Erfolg des SQL statements
      * @throws IllegalArgumentException wenn newName schon Name eines Eintrags ist
      */
-    public void editEntryName(String oldName, String newName) throws IllegalArgumentException {
+    public boolean editEntryName(String oldName, String newName) throws IllegalArgumentException {
         //SQL statement, um den Primärschlüssel (account) zu ändern
-        String sql = "UPDATE " + databaseName + " SET account = ? WHERE account = ?";
+        String sql = "UPDATE db SET account = ? WHERE account = ?";
 
         //prüft, ob der Name schon von einem anderen Eintrag genutzt wird
-        if (getEntrysByAccount(newName) == null) {
+        if (getEntryByName(newName) == null) {
             //führt das SQL statement aus
             try (PreparedStatement pst = conn.prepareStatement(sql)) {
                 pst.setString(1, newName);
                 pst.setString(2, oldName);
 
                 pst.executeUpdate();
+                return true;
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
         }else {
             throw new IllegalArgumentException("Accountname already in use");
         }
+        return false;
     }
 
     /**
@@ -205,7 +217,7 @@ public class PasswordManager {
         //temporäre Liste um alle Namen zu sammeln
         List<String> accounts = new ArrayList<String>();
         //SQL statement um alle Namen der Einträge zu bekommen
-        String sql = "SELECT account FROM " + databaseName;
+        String sql = "SELECT account FROM db";
 
         //führt das SQL statement aus
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
@@ -224,21 +236,22 @@ public class PasswordManager {
     }
 
     /**
-     * Returns array of all information of an entry by the username in following format:
+     * Liefert ein Array mit allen Informationen über einen Eintrag in folgendem Format:
      * acccount name, username, password
-     * Can be null if entry with account name does not exist
-     * @param account name of entry
-     * @return String array wit contenten of an etry {accountname, username, password}
+     * Kann null sein, wenn es keinen Eintrag für den Namen gibt
+     * @param account Name des Eintrags
+     * @return String array mit den Infromation des Eintrags {accountname, username, password}
      */
-    public String[] getEntrysByAccount(String account) {
-        //SQL statement to get the information of an account
-        String sql = "SELECT * FROM " + databaseName + " WHERE account = ?";
+    public String[] getEntryByName(String account) {
+        //SQL statement, um alle Informationen eines Eintrags zu bekommen
+        String sql = "SELECT * FROM db WHERE account = ?";
 
-        //executes SQL statement
+        //führt das SQL statement aus
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
             pst.setString(1, account);
 
             ResultSet rs = pst.executeQuery();
+            //erstellt ein neues Array mit den Ergebnissen des SQL statements und gibt dieses zurück
             if (rs.next()) {
                 return new String[]{rs.getString(1), rs.getString(2), rs.getString(3)};
             }
@@ -262,12 +275,12 @@ public class PasswordManager {
         boolean success = false;
 
         //SQL statement um den Usernamen oder das Passwort eines Accounts
-        String sql = "SELECT ? FROM " + databaseName + "WHERE account = ?";
+        String sql = "SELECT ? FROM db WHERE account = ?";
 
         //prüft, ob type username oder password ist
         if (type.equals("username") || type.equals("password")) {
             //prüft, ob der acccount existiert
-            if (getEntrysByAccount(account) != null) {
+            if (getEntryByName(account) != null) {
                 //setzt das SQL statement
                 try (PreparedStatement pst = conn.prepareStatement(sql)) {
                     pst.setString(1, type);
