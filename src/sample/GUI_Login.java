@@ -13,7 +13,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.wb.swt.SWTResourceManager;
+import org.eclipse.tips.ui.internal.util.SWTResourceManager;
 
 
 import logic.PasswordManager;
@@ -27,13 +27,7 @@ public class GUI_Login extends Composite {
 	private String password;
 	private String path;
 	public static PasswordManager pasman;
-	
-	/**
-	 * Create the composite.
-	 * @param parent
-	 * @param style
-	 */
-	
+
 	public static void main(String[] args) {
 		Display display = new Display();
 		Shell shell = new Shell(display);
@@ -50,10 +44,12 @@ public class GUI_Login extends Composite {
 		}
 		display.dispose();
 	}
-	
-	
-	
-	
+
+	/**
+	 * Create the composite.
+	 * @param parent
+	 * @param style
+	 */
 	public GUI_Login(Composite parent, int style) {
 		super(parent, style);
 		setBackground(SWTResourceManager.getColor(240, 240, 240));
