@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.IOException;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridLayout;
@@ -33,6 +35,7 @@ public class GUI_Login extends Composite {
 		Shell shell = new Shell(display);
 		shell.setLayout(new GridLayout(1, false));
 		
+		shell.setLocation(650, 300);
 		GUI_Login world = new GUI_Login(shell,SWT.NONE);
 		shell.setText("Passwort Manager");
 		
@@ -80,22 +83,14 @@ public class GUI_Login extends Composite {
 		Button btnNewButton = new Button(this, SWT.NONE);
 		btnNewButton.setBounds(185, 187, 104, 25);
 		btnNewButton.setText("Login");
-		/*btnNewButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-            	
-            	password= lblPasswort.getText();
-            	path= lblFilepfad.getText();
-            	File file  = new File(path);
-                pasman= new PasswordManager (file,password);
-            }*/
-		btnNewButton.addSelectionListener(new SelectionAdapter() {
+		
+		btnNewButton.addFocusListener(new FocusAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
-				password= lblPasswort.getText();
-            	path= lblFilepfad.getText();
-            	File file  = new File(path);
+			public void focusGained(FocusEvent e) {
+				password= lblPasswort.getText();            //Passwort eingabe
+            	path= lblFilepfad.getText();				//Pfad eingabe
+            	File file  = new File(path);				//Pfad zu file
+            	if(file.exists()) {							//Test falls file schon existiert oder erzeugt werden soll
 				try {
 					pasman=new PasswordManager(file,password);
 				} catch (IOException e1) {
@@ -104,8 +99,16 @@ public class GUI_Login extends Composite {
 				}
 				GUI_App GUI_App =new GUI_App(parent,style);
 				GUI_App.setVisible(true);
-				System.exit(0);
-				
+				}
+            	else {
+            		try {
+            		pasman=new PasswordManager(file,"Passwordbase",password);
+            		} catch(IOException e1) {
+            			
+            			e1.printStackTrace();
+            		}
+            	}
+            		
 			}
 		});
 

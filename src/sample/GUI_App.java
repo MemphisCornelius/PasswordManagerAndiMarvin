@@ -8,12 +8,17 @@ import logic.PasswordManager;
 
 import sample.*;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.TouchEvent;
+import org.eclipse.swt.events.TouchListener;
 import org.eclipse.swt.widgets.Text;
 
 public class GUI_App extends Composite {
@@ -27,8 +32,9 @@ public class GUI_App extends Composite {
 	private PasswordManager pasman= GUI_Login.pasman;
 	private Text text;
 	private Text text_1;
+	private String[] feld;
 	private GUI_Login gl;
-	private int page;
+	private boolean pushed_2=false;
 	
 	public static void main(String[] args) {
 		Display display = new Display();
@@ -49,41 +55,72 @@ public class GUI_App extends Composite {
 	public GUI_App(Composite parent, int style) {
 		
 		super(parent, style);
+		ScrolledComposite scrolledComposite = new ScrolledComposite(this, SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL);
+		scrolledComposite.setBounds(10, 10, 106, 438);
+		scrolledComposite.setExpandHorizontal(true);
+		scrolledComposite.setExpandVertical(true);
+		scrolledComposite.setVisible(false);
+		Combo Name = new Combo(this, SWT.NONE);
+		Name.setBounds(315, 139, 120, 25);
 		
-		
-		Button button = new Button(this, SWT.NONE);
-		button.addSelectionListener(new SelectionAdapter() {
+		Button button2=new Button(this,SWT.NONE);
+		button2.setBounds(315, 275, 120, 25);
+		button2.setText("Get Password");
+		button2.addFocusListener(new FocusAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
+			public void focusGained(FocusEvent e) {
+				feld=pasman.getEntryByName(Name.getText());
+				text.setText(feld[1]);
+				text_1.setText(feld[2]);
 			}
-		});
-		button.setBounds(10, 465, 25, 25);
+		});	
+		Button button = new Button(this, SWT.NONE);
 		button.setText("+");
 		
-		Button btnLogout = new Button(this, SWT.NONE);
-		btnLogout.addSelectionListener(new SelectionAdapter() {
+		button.addFocusListener(new FocusAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
+			public void focusGained(FocusEvent e) {
+				if(pushed_2) 
+				{
+					pasman.newEntry(Name.getText(), text_1.getText(), text.getText());
+					Name.add(Name.getText());
+					button.setText("+");
+					pushed_2=false;
+					text_1.setEnabled(false);
+					text.setEnabled(false);
+				}else {
+				
+					text_1.setEnabled(true);
+					text.setEnabled(true);
+				Name.setEnabled(true);
+					button.setText("Save");
+					pushed_2=true;
+					
+					}
+				
+			}
+		});
+		
+		
+			
+		button.setBounds(10, 465, 25, 25);
+		
+		
+		Button btnLogout = new Button(this, SWT.NONE);
+		btnLogout.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusGained(FocusEvent e) {
 				pasman.logout();
 				gl=new GUI_Login(parent,style);
 				gl.setVisible(true);
-				System.exit(0);
+				
 			}
 		});
 		btnLogout.setBounds(41, 465, 75, 25);
 		btnLogout.setText("Logout");
 		
-		/*btnLogout.addActionListener(new ActionListener() {
+	
 
-	            @Override
-	            public void actionPerformed(ActionEvent e) {
-	                
-	            }
-		}*/
-		ScrolledComposite scrolledComposite = new ScrolledComposite(this, SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL);
-		scrolledComposite.setBounds(10, 10, 106, 438);
-		scrolledComposite.setExpandHorizontal(true);
-		scrolledComposite.setExpandVertical(true);
 		
 		Button btnNewButton = new Button(this, SWT.NONE);
 		btnNewButton.addSelectionListener(new SelectionAdapter() {
@@ -93,79 +130,74 @@ public class GUI_App extends Composite {
 			}
 		});
 		btnNewButton.setText("Copy");
-		btnNewButton.setBounds(459, 139, 75, 25);
-		/*btnNewButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                
-            }
-		}*/
+		btnNewButton.setBounds(459, 186, 75, 25);
+		
 		Button btnNewButton_1 = new Button(this, SWT.NONE);
-		btnNewButton_1.addSelectionListener(new SelectionAdapter() {
+		btnNewButton_1.addFocusListener(new FocusAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
+			public void focusGained(FocusEvent e) {
 				pasman.copyToClipboard("password",text_1.getText());
 			}
 		});
-		btnNewButton_1.setBounds(459, 186, 75, 25);
+		btnNewButton_1.setBounds(459, 233, 75, 25);
 		btnNewButton_1.setText("Copy");
-		/* btnNewButton_1.addActionListener(new ActionListener() {
-
-	            @Override
-	            public void actionPerformed(ActionEvent e) {
-	                copyToClipboard();
-	            }
 		
-		}*/
 		Button btnNewButton_2 = new Button(this, SWT.NONE);
-		btnNewButton_2.addSelectionListener(new SelectionAdapter() {
+		btnNewButton_2.addFocusListener(new FocusAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
+			public void focusGained(FocusEvent e) {
 			}
 		});
 		btnNewButton_2.setBounds(697, 465, 75, 25);
 		btnNewButton_2.setText("Edit");
-		
-		Button btnNewButton_3 = new Button(this, SWT.NONE);
-		btnNewButton_3.addSelectionListener(new SelectionAdapter() {
+		btnNewButton_2.addFocusListener(new FocusAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
+			public void focusGained(FocusEvent e) {
 				if(pushed) {
 					//pasman.editEntryContent(pasman, text_1.getText(), text.getText());
-					text_1.setEnabled(false);
+					text_1.setEnabled(false);//test obs geht
 					text.setEnabled(false);
+					btnNewButton_2.setText("Edit");
+					pasman.editEntryContent(Name.getText(), text_1.getText(), text.getText());
 				}
 				else {
 					text_1.setEnabled(true);
 					text.setEnabled(true);
 					pushed=true;
+					btnNewButton_2.setText("Save");
 					}
 			}
 		});
+		Button btnNewButton_3 = new Button(this, SWT.NONE);
+	
 		btnNewButton_3.setBounds(616, 465, 75, 25);
 		btnNewButton_3.setText("Delete");
-		btnNewButton_3.addSelectionListener(new SelectionAdapter() {
+		btnNewButton_3.addFocusListener(new FocusAdapter() {
 			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {
-				//pasman.deleteEntry();
-			}
+			public void focusGained(FocusEvent e) {
+				pasman.deleteEntry(Name.getText());
 		});
 		Label lblNewLabel_2 = new Label(this, SWT.NONE);
 		lblNewLabel_2.setText("Benutzername");
-		lblNewLabel_2.setBounds(183, 139, 106, 25);
+		lblNewLabel_2.setBounds(183, 186, 106, 25);
 		
 		Label lblNewLabel_3 = new Label(this, SWT.NONE);
-		lblNewLabel_3.setBounds(183, 186, 106, 25);
+		lblNewLabel_3.setBounds(183, 233, 106, 25);
 		lblNewLabel_3.setText("Passwort");
+		
+		Label lblNewLabel_4 = new Label(this, SWT.NONE);
+		lblNewLabel_4.setBounds(183, 142, 106, 25);
+		lblNewLabel_4.setText("Account");
 		
 		text = new Text(this, SWT.BORDER);
 		text.setBounds(315, 186, 120, 25);
 		text.setEnabled(false);
 		
 		text_1 = new Text(this, SWT.BORDER);
-		text_1.setBounds(315, 139, 120, 25);
+		text_1.setBounds(315, 233, 120, 25);
 		text_1.setEnabled(false);
+		
+		
 
 	}
 
@@ -175,6 +207,4 @@ public class GUI_App extends Composite {
 	protected void checkSubclass() {
 		// Disable the check that prevents subclassing of SWT components
 	}
-	
-
 }
