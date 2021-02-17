@@ -21,6 +21,9 @@ import org.eclipse.swt.events.TouchEvent;
 import org.eclipse.swt.events.TouchListener;
 import org.eclipse.swt.widgets.Text;
 
+import java.io.File;
+import java.io.IOException;
+
 public class GUI_App extends Composite {
 
 	/**
@@ -29,14 +32,14 @@ public class GUI_App extends Composite {
 	 * @param style
 	 */
 	private boolean pushed=false;
-	private PasswordManager pasman= GUI_Login.pasman;
+	private PasswordManager pasman= new PasswordManager(new File("/home/marvin/testi.mv.db"), "testi");//GUI_Login.pasman;
 	private Text text;
 	private Text text_1;
 	private String[] feld;
 	private GUI_Login gl;
 	private boolean pushed_2=false;
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		Display display = new Display();
 		Shell shell = new Shell(display);
 		shell.setLayout(new GridLayout(1, false));
@@ -52,7 +55,7 @@ public class GUI_App extends Composite {
 		display.dispose();
 	}
 	
-	public GUI_App(Composite parent, int style) {
+	public GUI_App(Composite parent, int style) throws IOException {
 		
 		super(parent, style);
 		ScrolledComposite scrolledComposite = new ScrolledComposite(this, SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL);
@@ -176,7 +179,7 @@ public class GUI_App extends Composite {
 			@Override
 			public void focusGained(FocusEvent e) {
 				pasman.deleteEntry(Name.getText());
-		});
+		}});
 		Label lblNewLabel_2 = new Label(this, SWT.NONE);
 		lblNewLabel_2.setText("Benutzername");
 		lblNewLabel_2.setBounds(183, 186, 106, 25);
@@ -200,8 +203,6 @@ public class GUI_App extends Composite {
 		
 
 	}
-
-	
 
 	@Override
 	protected void checkSubclass() {

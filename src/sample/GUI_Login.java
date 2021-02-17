@@ -1,5 +1,6 @@
 package sample;
 
+import org.eclipse.swt.events.*;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Text;
@@ -8,10 +9,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.FocusAdapter;
-import org.eclipse.swt.events.FocusEvent;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
@@ -73,6 +70,8 @@ public class GUI_Login extends Composite {
 		lblFilepfad.setAlignment(SWT.CENTER);
 		lblFilepfad.setText("Datei");
 		lblFilepfad.setBounds(109, 158, 55, 15);
+
+
 		
 		Label lblPasswortManager = new Label(this, SWT.NONE);
 		lblPasswortManager.setBackground(SWTResourceManager.getColor(SWT.COLOR_WHITE));
@@ -90,6 +89,7 @@ public class GUI_Login extends Composite {
 				password= lblPasswort.getText();            //Passwort eingabe
             	path= lblFilepfad.getText();				//Pfad eingabe
             	File file  = new File(path);				//Pfad zu file
+				System.out.println(file.getPath());
             	if(file.exists()) {							//Test falls file schon existiert oder erzeugt werden soll
 				try {
 					pasman=new PasswordManager(file,password);
@@ -97,8 +97,13 @@ public class GUI_Login extends Composite {
 					
 					e1.printStackTrace();
 				}
-				GUI_App GUI_App =new GUI_App(parent,style);
-				GUI_App.setVisible(true);
+					GUI_App GUI_App = null;
+					try {
+						GUI_App = new GUI_App(parent,style);
+					} catch (IOException ioException) {
+						ioException.printStackTrace();
+					}
+					GUI_App.setVisible(true);
 				}
             	else {
             		try {
