@@ -1,5 +1,3 @@
-package logic;
-
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.io.File;
@@ -24,7 +22,6 @@ public class PasswordManager {
      */
     public PasswordManager(File file, String password) throws IOException {
         Connection connTmp = null;
-        String databaseNameTmp = null;
 
         //prüft, ob die Datenbank-Daeti existiert, eine Datei ist, der Pfad zur Datei absolut ist,
         //ob die Datei les- und schreibbar ist und auf ".mv.db" endet,
@@ -39,7 +36,6 @@ public class PasswordManager {
                 //Verbindet sich zur Datenbank
                 Class.forName(JDBC_DRIVER);
                 connTmp = DriverManager.getConnection(dbUrl, "user", password + " " + password);
-                databaseNameTmp = file.getName().substring(0, file.getName().length() - 6);
             } catch (SQLException | ClassNotFoundException throwables) {
                 throwables.printStackTrace();
             }
@@ -59,7 +55,6 @@ public class PasswordManager {
      */
     public PasswordManager(File path, String databaseName, String password) throws IOException {
         Connection connTmp = null;
-        String databaseNameTmp = null;
 
         //prüft, ob der Pfad für die Datenbank existiert, ein Ordner ist und les- und schreibbar ist,
         //um potenzielle Fehler auszuschließen
@@ -78,7 +73,6 @@ public class PasswordManager {
                 connTmp = DriverManager.getConnection(dbUrl,"user", password + " " + password);
                 PreparedStatement pst = connTmp.prepareStatement(sql);
                 pst.executeUpdate();
-                databaseNameTmp = databaseName;
             } catch (SQLException | ClassNotFoundException throwables) {
                 throwables.printStackTrace();
             }
@@ -213,7 +207,7 @@ public class PasswordManager {
      * Kann leer sein, wenn keine Einträge in der Datenbank sind oder null wenn ein fehler mit der Datenbak auftritt
      * @return String array von allen Eintragsnamen
      */
-    public String[] getEntryNames() {
+    public Object[] getEntryNames() {
         //temporäre Liste um alle Namen zu sammeln
         List<String> accounts = new ArrayList<String>();
         //SQL statement um alle Namen der Einträge zu bekommen
@@ -228,7 +222,7 @@ public class PasswordManager {
                 accounts.add(rs.getString(1));
             }
             //wandelt die Liste in ein Array um und gibt dieses zurück
-            return (String[]) accounts.toArray();
+            return accounts.toArray();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
@@ -275,23 +269,24 @@ public class PasswordManager {
         boolean success = false;
 
         //SQL statement um den Usernamen oder das Passwort eines Accounts
-        String sql = "SELECT ? FROM db WHERE account = ?";
+        String sql = "SELECT * FROM db WHERE account = ?";
 
-        //prüft, ob type username oder password ist
+        //prüft, ob type username oder password ist TODO
         if (type.equals("username") || type.equals("password")) {
             //prüft, ob der acccount existiert
             if (getEntryByName(account) != null) {
                 //setzt das SQL statement
                 try (PreparedStatement pst = conn.prepareStatement(sql)) {
-                    pst.setString(1, type);
-                    pst.setString(2, account);
-
+                    pst.setString(1, account);
                     //führt das SQL statement aus
                     ResultSet rs = pst.executeQuery();
                     while (rs.next()) {
+                        System.out.println(type.equals("username") ? rs.getString(2) : rs.getString(3));
                         //kopiert das Ergebnis der SQL Querry in die Zwischenablage
                         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
-                                new StringSelection(rs.getString(1)), null);
+                                new StringSelection(
+                                        type.equals("username") ? rs.getString(2) : rs.getString(3)),
+                                null);
                         success = true;
 
                         //überschreibt die Zwischenablage nach einer Miute mit ""
@@ -307,11 +302,11 @@ public class PasswordManager {
                     throwables.printStackTrace();
                 }
             } else {
-              throw new IllegalArgumentException("Accountname doe not exist.");
+                throw new IllegalArgumentException("Accountname does not exist.");
             }
         } else {
             throw new IllegalArgumentException("Illegal type. Must be \"username\" or \"password\".");
         }
-    return success;
+        return success;
     }
 }
